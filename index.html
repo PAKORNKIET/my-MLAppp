@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teachable Machine - Image Checker</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    color: white;
+    min-height: 100vh;
+}
+
+.navbar {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    background: rgba(0,0,0,0.4);
+    padding: 15px;
+}
+
+.navbar button {
+    background: transparent;
+    border: 2px solid #00eaff;
+    color: #00eaff;
+    padding: 10px 25px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.navbar button:hover,
+.navbar button.active {
+    background: #00eaff;
+    color: black;
+}
+
+.tab {
+    display: none;
+    min-height: calc(100vh - 80px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.card {
+    background: rgba(0,0,0,0.5);
+    padding: 30px;
+    border-radius: 20px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 0 20px #00eaff;
+}
+
+.upload-label {
+    display: inline-block;
+    background: #00eaff;
+    color: black;
+    padding: 12px 30px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: 0.3s;
+    margin-top: 20px;
+}
+
+.upload-label:hover {
+    background: white;
+}
+
+input[type="file"] {
+    display: none;
+}
+
+.result {
+    margin-top: 20px;
+    font-size: 20px;
+    color: #00ffcc;
+}
+</style>
+</head>
+<body>
+
+<!-- NAV BAR -->
+<div class="navbar">
+    <button class="active" onclick="openTab('home', this)">Home</button>
+    <button onclick="openTab('check', this)">Check</button>
+    <button onclick="openTab('about', this)">About Us</button>
+</div>
+
+<!-- HOME -->
+<div id="home" class="tab" style="display:flex;">
+    <div class="card">
+        <h1>Welcome</h1>
+        <p>เว็บไซต์ตรวจสอบภาพด้วย AI จาก Teachable Machine</p>
+        <p>ไปที่เมนู Check เพื่ออัปโหลดภาพและดูผลการทำนาย</p>
+    </div>
+</div>
+
+<!-- CHECK -->
+<div id="check" class="tab">
+    <div class="card">
+        <h1>Check Image</h1>
+
+        <label class="upload-label">
+            เลือกภาพ
+            <input type="file" accept="image/*" onchange="handleImage(this)">
+        </label>
+
+        <div id="result" class="result"></div>
+    </div>
+</div>
+
+<!-- ABOUT -->
+<div id="about" class="tab">
+    <div class="card">
+        <h1>About Us</h1>
+        <p>ระบบนี้ใช้ AI จาก Google Teachable Machine</p>
+        <p>สามารถอัปโหลดภาพเพื่อวิเคราะห์และแสดงคลาสที่มีความน่าจะเป็นสูงที่สุด</p>
+        <p>พัฒนาเพื่อการเรียนรู้ด้านปัญญาประดิษฐ์และเทคโนโลยี</p>
+    </div>
+</div>
+
+<script>
+const URL = "https://teachablemachine.withgoogle.com/models/V6Vc2DePX/";
+let model, maxPredictions;
+
+// โหลดโมเดล
+async function loadModel() {
+    const modelURL = URL + "model.json";
+    const metadataURL = URL + "metadata.json";
+    model = await tmImage.load(modelURL, metadataURL);
+    maxPredictions = model.getTotalClasses();
+}
+loadModel();
+
+// เปลี่ยนแท็บ
+function openTab(tabId, btn) {
+    const tabs = document.querySelectorAll(".tab");
+    const buttons = document.querySelectorAll(".navbar button");
+
+    tabs.forEach(tab => tab.style.display = "none");
+    buttons.forEach(b => b.classList.remove("active"));
+
+    document.getElementById(tabId).style.display = "flex";
+    btn.classList.add("active");
+}
+
+// อ่านไฟล์ภาพ
+function handleImage(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        const img = new Image();
+        img.src = e.target.result;
+
+        img.onload = async function() {
+            const prediction = await model.predict(img);
+
+            let best = prediction[0];
+            for (let i = 1; i < maxPredictions; i++) {
+                if (prediction[i].probability > best.probability) {
+                    best = prediction[i];
+                }
+            }
+
+            document.getElementById("result").innerHTML =
+                "ผลลัพธ์: <b>" + best.className + "</b><br>" +
+                "ความน่าจะเป็น: " + (best.probability * 100).toFixed(2) + "%";
+        };
+    };
+    reader.readAsDataURL(file);
+}
+</script>
+
+</body>
+</html>
